@@ -158,7 +158,7 @@ def main():
         for video in sorted_videos:
             play_video(video)
     else:
-        play_video(videos[video_index])
+        play_video(sorted_videos[video_index])
 
 
 if __name__ == "__main__":
