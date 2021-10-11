@@ -49,6 +49,7 @@ def play_video(filename):
     """
     Quotes the filename and plays the video via mpv
     After watching the video the user gets the option to delete the video
+    If on windows - finds the mpv.exe first
     """
     cmd = 'mpv "{}"'.format(filename)
     os.system(cmd)
@@ -58,23 +59,11 @@ def play_video(filename):
     print()
 
 
-def main():
+def main(args):
     """
     Uses the functions 'get_videos', 'play_video', 'split_by_channels' to ask the user per channel what video she wants to watch next.
     The user will first choose a channel and then a video
     """
-    parser = argparse.ArgumentParser(
-        description="Interactive tool to choose the next video to watch from a channel"
-    )
-    parser.add_argument(
-        "dir", help="The directory on your computer which contains the videos"
-    )
-    args = parser.parse_args()
-
-    # prints a welcome message about the tool to the screen
-    print(colored("Welcome to the interactive video chooser!", "cyan"))
-    print(colored("----------------------------------------", "cyan"))
-    print()
 
     extensions = ["mp4", "mkv", "avi", "mov"]
 
@@ -118,48 +107,71 @@ def main():
     videos = videos_by_channel[channel]
     if len(videos) == 1:
         play_video(videos[0])
+    else:
+        # sorts the videos by their timestamp - oldest first
+        sorted_videos = sorted(videos, key=lambda x: os.path.getctime(x))
+
+        for index, video in enumerate(sorted_videos):
+            # format: index videoname-without-channelname (timestamp-human-readable-in-grey)
+            video_name_without_channel = os.path.basename(video).replace(
+                channel + "_", ""
+            )
+            timestamp = os.path.getctime(video)
+            timestamp_human_readable = time.strftime(
+                "%a, %d %b %Y %H:%M:%S", time.localtime(timestamp)
+            )
+            print(
+                " ",
+                colored(index + 1, "green"),
+                video_name_without_channel,
+                colored("({})".format(timestamp_human_readable), "cyan"),
+            )
+
+        # adds an option for the user to watch all videos of the channel in order - sorted by their timestamp
+        print(" ", colored(len(videos) + 1, "green"), "Play all videos")
+
+        # get the index of the video the user wants to watch - if the user hit enter without typing anything, choose the first video
+        video_index = input("Choose video to watch next: ")
+        if video_index == "":
+            print("No input - choosing first video as default")
+            video_index = 0
+        else:
+            video_index = int(video_index) - 1
+        if video_index not in range(len(sorted_videos) + 1):
+            print("Video index out of range")
+            sys.exit(1)
+
+        if video_index == len(sorted_videos):
+            # sorts the videos by their created date, oldest first, and plays them
+            print()
+            print("Playing all videos in order of creation date")
+            for video in sorted_videos:
+                play_video(video)
+        else:
+            play_video(sorted_videos[video_index])
+
+    # The user is asked if she wants to continue watching
+    print()
+    continue_watching = input("Continue watching? [Y/n] ")
+    if continue_watching.lower() == "y" or continue_watching == "":
+        main(args)
+    else:
+        print("Goodbye!")
         sys.exit(0)
-
-    # sorts the videos by their timestamp - oldest first
-    sorted_videos = sorted(videos, key=lambda x: os.path.getctime(x))
-
-    for index, video in enumerate(sorted_videos):
-        # format: index videoname-without-channelname (timestamp-human-readable-in-grey)
-        video_name_without_channel = os.path.basename(video).replace(channel + "_", "")
-        timestamp = os.path.getctime(video)
-        timestamp_human_readable = time.strftime(
-            "%a, %d %b %Y %H:%M:%S", time.localtime(timestamp)
-        )
-        print(
-            " ",
-            colored(index + 1, "green"),
-            video_name_without_channel,
-            colored("({})".format(timestamp_human_readable), "cyan"),
-        )
-
-    # adds an option for the user to watch all videos of the channel in order - sorted by their timestamp
-    print(" ", colored(len(videos) + 1, "green"), "Play all videos")
-
-    # get the index of the video the user wants to watch - if the user hit enter without typing anything, choose the first video
-    video_index = input("Choose video to watch next: ")
-    if video_index == "":
-        print("No input - choosing first video as default")
-        video_index = 0
-    else:
-        video_index = int(video_index) - 1
-    if video_index not in range(len(sorted_videos) + 1):
-        print("Video index out of range")
-        sys.exit(1)
-
-    if video_index == len(sorted_videos):
-        # sorts the videos by their created date, oldest first, and plays them
-        print()
-        print("Playing all videos in order of creation date")
-        for video in sorted_videos:
-            play_video(video)
-    else:
-        play_video(sorted_videos[video_index])
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Interactive tool to choose the next video to watch from a channel"
+    )
+    parser.add_argument(
+        "dir", help="The directory on your computer which contains the videos"
+    )
+    args = parser.parse_args()
+
+    # prints a welcome message about the tool to the screen
+    print(colored("Welcome to the interactive video chooser!", "cyan"))
+    print(colored("----------------------------------------", "cyan"))
+    print()
+
+    main(args)
