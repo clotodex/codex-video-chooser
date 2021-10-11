@@ -19,14 +19,14 @@ from collections import OrderedDict
 from termcolor import colored
 
 
-def split_by_channels(videos):
+def split_by_channels(videos, delimiter="_"):
     """
     This function splits the list of video titles by channel.
-    The title is in format 'channel name_rest of the filename.ext'
+    The title is in format 'channel name<delimiter>rest of the filename.ext'
     """
     channel_dict = {}
     for video in videos:
-        channel = os.path.basename(video).split("_")[0]
+        channel = os.path.basename(video).split(delimiter)[0]
         if channel not in channel_dict:
             channel_dict[channel] = [video]
         else:
@@ -72,7 +72,7 @@ def main(args):
         print("No videos found in folder {}".format(args.dir))
         sys.exit(0)
 
-    videos_by_channel = split_by_channels(videos)
+    videos_by_channel = split_by_channels(videos, args.delimiter)
 
     # prints all channel names (and their amount of videos if more than 1) for the user to choose from via index starting at 1
     for index, channel in enumerate(videos_by_channel.keys()):
@@ -166,6 +166,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "dir", help="The directory on your computer which contains the videos"
+    )
+    parser.add_argument(
+        "-d",
+        "--delimiter",
+        default="_",
+        help="The delimiter for the channel name and the rest of the title",
     )
     args = parser.parse_args()
 
